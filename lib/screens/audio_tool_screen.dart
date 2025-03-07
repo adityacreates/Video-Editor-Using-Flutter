@@ -21,6 +21,8 @@ class _AudioToolScreenState extends State<AudioToolScreen> {
       type: FileType.audio,
     );
 
+    if (!mounted) return;
+
     if (result != null) {
       setState(() {
         audioPath = result.files.single.path;
@@ -30,6 +32,8 @@ class _AudioToolScreenState extends State<AudioToolScreen> {
 
   Future<void> _addAudio() async {
     if (audioPath == null) return;
+
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     setState(() {
       _isProcessing = true;
@@ -42,20 +46,24 @@ class _AudioToolScreenState extends State<AudioToolScreen> {
         volume,
       );
 
+      if (!mounted) return;
+
       if (outputPath != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('Audio added successfully!')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('Failed to add audio')),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     } finally {
+      if (!mounted) return;
       setState(() {
         _isProcessing = false;
       });

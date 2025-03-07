@@ -18,6 +18,8 @@ class _SubtitlesToolScreenState extends State<SubtitlesToolScreen> {
   Future<void> _addSubtitles() async {
     if (_textController.text.isEmpty) return;
 
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     setState(() {
       _isProcessing = true;
     });
@@ -29,24 +31,34 @@ class _SubtitlesToolScreenState extends State<SubtitlesToolScreen> {
         startTime,
       );
 
+      if (!mounted) return;
+
       if (outputPath != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('Subtitles added successfully!')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(content: Text('Failed to add subtitles')),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     } finally {
+      if (!mounted) return;
       setState(() {
         _isProcessing = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   @override

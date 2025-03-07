@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+
 import 'merge_tool_screen.dart';
 import 'settings_screen.dart';
 import 'audio_tool_screen.dart';
 import 'subtitles_tool_screen.dart';
+import 'trim_tool_screen.dart';
+import 'video_editor_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -14,61 +19,122 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   bool _isDarkMode = false;
 
-  final List<Map<String, dynamic>> _videoTools = [
-  {
-    'icon': Icons.cut_rounded,
-    'label': 'Trim',
-    'onTap': (BuildContext context) {
-      // TODO: Implement trim functionality
-    },
-  },
-  {
-    'icon': Icons.merge_type_rounded,
-    'label': 'Merge',
-    'onTap': (BuildContext context) {
+  // Helper: Navigate to Trim Tool Screen
+  Future<void> _navigateToTrim() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.video);
+    if (!mounted) return;
+    if (result != null && result.files.isNotEmpty) {
+      final file = File(result.files.first.path!);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const MergeToolScreen()),
+        MaterialPageRoute(builder: (context) => TrimToolScreen(videoFile: file)),
       );
-    },
-  },
-  {
-    'icon': Icons.filter_rounded,
-    'label': 'Filters',
-    'onTap': (BuildContext context) {
-      // TODO: Implement filters functionality
-    },
-  },
-  {
-    'icon': Icons.animation_rounded,
-    'label': 'Effects',
-    'onTap': (BuildContext context) {
-      // TODO: Implement effects functionality
-    },
-  },
-  {
-    'icon': Icons.music_note_rounded,
-    'label': 'Audio',
-    'onTap': (BuildContext context) {
-      // Navigate to AudioToolsScreen
+    }
+  }
+
+  // Helper: Navigate to Filters (Video Editor Screen with filter tool)
+  Future<void> _navigateToFilters() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.video);
+    if (!mounted) return;
+    if (result != null && result.files.isNotEmpty) {
+      final file = File(result.files.first.path!);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const AudioToolScreen(videoPath: 'path/to/video')),
+        MaterialPageRoute(
+          builder: (context) =>
+              VideoEditorScreen(videoFile: file, toolType: 'filter'),
+        ),
       );
-    },
-  },
-  {
-    'icon': Icons.subtitles_rounded,
-    'label': 'Subtitles',
-    'onTap': (BuildContext context) {
-      // Navigate to SubtitlesToolsScreen
+    }
+  }
+
+  // Helper: Navigate to Effects (Video Editor Screen with effects tool)
+  Future<void> _navigateToEffects() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.video);
+    if (!mounted) return;
+    if (result != null && result.files.isNotEmpty) {
+      final file = File(result.files.first.path!);
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const SubtitlesToolScreen(videoPath: 'path/to/video')),
+        MaterialPageRoute(
+          builder: (context) =>
+              VideoEditorScreen(videoFile: file, toolType: 'effects'),
+        ),
       );
+    }
+  }
+
+  // Helper: Navigate to Merge Tool Screen
+  Future<void> _navigateToMerge() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const MergeToolScreen()),
+    );
+  }
+
+  // Helper: Navigate to Audio Tool Screen
+  Future<void> _navigateToAudio() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.video);
+    if (!mounted) return;
+    if (result != null && result.files.isNotEmpty) {
+      final file = File(result.files.first.path!);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AudioToolScreen(videoPath: file.path),
+        ),
+      );
+    }
+  }
+
+  // Helper: Navigate to Subtitles Tool Screen
+  Future<void> _navigateToSubtitles() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.video);
+    if (!mounted) return;
+    if (result != null && result.files.isNotEmpty) {
+      final file = File(result.files.first.path!);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SubtitlesToolScreen(videoPath: file.path),
+        ),
+      );
+    }
+  }
+
+  // Video tools definitions with onTap callbacks.
+  late final List<Map<String, dynamic>> _videoTools = [
+    {
+      'icon': Icons.cut_rounded,
+      'label': 'Trim',
+      'onTap': _navigateToTrim,
     },
-  },
-];
+    {
+      'icon': Icons.merge_type_rounded,
+      'label': 'Merge',
+      'onTap': _navigateToMerge,
+    },
+    {
+      'icon': Icons.filter_rounded,
+      'label': 'Filters',
+      'onTap': _navigateToFilters,
+    },
+    {
+      'icon': Icons.animation_rounded,
+      'label': 'Effects',
+      'onTap': _navigateToEffects,
+    },
+    {
+      'icon': Icons.music_note_rounded,
+      'label': 'Audio',
+      'onTap': _navigateToAudio,
+    },
+    {
+      'icon': Icons.subtitles_rounded,
+      'label': 'Subtitles',
+      'onTap': _navigateToSubtitles,
+    },
+  ];
 
   void _toggleTheme() {
     setState(() {
@@ -89,6 +155,13 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // Stub for new project creation.
+  void _createNewProject() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('New project creation is not implemented yet')),
     );
   }
 
@@ -161,7 +234,7 @@ class _MainScreenState extends State<MainScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                 );
+                  );
                 },
               ),
             ],
@@ -213,9 +286,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            // TODO: Implement new project creation
-          },
+          onPressed: _createNewProject,
           backgroundColor: Colors.blue,
           child: const Icon(Icons.add),
         ),
@@ -235,11 +306,11 @@ class _MainScreenState extends State<MainScreen> {
         decoration: BoxDecoration(
           color: _isDarkMode ? Colors.grey[900] : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Color.fromRGBO(0, 0, 0, 0.1),
               blurRadius: 4,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -265,3 +336,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
+
+
+

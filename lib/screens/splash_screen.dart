@@ -41,11 +41,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Start animation after a short delay
     Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
       _controller.forward();
     });
 
     // Navigate to onboarding screen after splash duration
     Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),
       );

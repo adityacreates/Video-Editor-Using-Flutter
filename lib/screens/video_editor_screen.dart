@@ -7,7 +7,6 @@ import '../utils/video_filters.dart';
 import '../utils/video_effects.dart';
 import '../services/video_processor.dart';
 
-// Text Overlay class to manage text properties
 class TextOverlay {
   final String text;
   final Offset position;
@@ -57,31 +56,32 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
   double _startTrim = 0.0;
   double _endTrim = 1.0;
   
-  // Filter and Effect states
   List<double> _currentFilter = VideoFilters.normal;
   Matrix4? _currentEffect;
-  
-  // Text overlay state
   List<TextOverlay> textOverlays = [];
 
   @override
   void initState() {
     super.initState();
     _initializeVideo();
-    _controller.addListener(() {
-      setState(() {
-        _currentPosition = _controller.value.position.inSeconds.toDouble();
-      });
-    });
   }
 
   Future<void> _initializeVideo() async {
     _controller = VideoPlayerController.file(widget.videoFile);
     await _controller.initialize();
+    
+    if (!mounted) return;
+    
+    _controller.addListener(() {
+      if (!mounted) return;
+      setState(() {
+        _currentPosition = _controller.value.position.inSeconds.toDouble();
+      });
+    });
+    
     setState(() {});
   }
 
-  // Text Tool
   Widget _buildTextTool() {
     return Column(
       children: [
@@ -94,6 +94,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                 top: textOverlay.position.dy,
                 child: GestureDetector(
                   onPanUpdate: (details) {
+                    if (!mounted) return;
                     setState(() {
                       final index = textOverlays.indexOf(textOverlay);
                       textOverlays[index] = textOverlay.copyWith(
@@ -101,9 +102,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                       );
                     });
                   },
-                  onDoubleTap: () {
-                    _showTextEditingDialog(textOverlay);
-                  },
+                  onDoubleTap: () => _showTextEditingDialog(textOverlay),
                   child: Text(
                     textOverlay.text,
                     style: TextStyle(
@@ -130,6 +129,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
   }
 
   void _addNewText() {
+    if (!mounted) return;
     setState(() {
       textOverlays.add(
         TextOverlay(
@@ -146,16 +146,19 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
   }
 
   Future<void> _showTextEditingDialog(TextOverlay overlay) async {
-    final TextEditingController textController = TextEditingController(text: overlay.text);
+    if (!mounted) return;
+    final BuildContext contextRef = context;
+    final TextEditingController textController =
+        TextEditingController(text: overlay.text);
     Color selectedColor = overlay.color;
     double selectedFontSize = overlay.fontSize;
 
     await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: contextRef,
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: const Text('Edit Text'),
         content: StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (BuildContext context, StateSetter setDialogState) {
             return SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -177,9 +180,11 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                             setDialogState(() {
                               selectedFontSize = value;
                             });
+                            if (!mounted) return;
                             setState(() {
                               final index = textOverlays.indexOf(overlay);
-                              textOverlays[index] = overlay.copyWith(fontSize: value);
+                              textOverlays[index] =
+                                  overlay.copyWith(fontSize: value);
                             });
                           },
                         ),
@@ -196,16 +201,19 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                             setDialogState(() {
                               selectedColor = color;
                             });
+                            if (!mounted) return;
                             setState(() {
                               final index = textOverlays.indexOf(overlay);
-                              textOverlays[index] = overlay.copyWith(color: color);
+                              textOverlays[index] =
+                                  overlay.copyWith(color: color);
                             });
                           },
                           child: CircleAvatar(
                             backgroundColor: color,
                             radius: 15,
                             child: selectedColor == color
-                                ? const Icon(Icons.check, color: Colors.white, size: 15)
+                                ? const Icon(Icons.check,
+                                    color: Colors.white, size: 15)
                                 : null,
                           ),
                         );
@@ -215,16 +223,19 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                           setDialogState(() {
                             selectedColor = Colors.white;
                           });
+                          if (!mounted) return;
                           setState(() {
                             final index = textOverlays.indexOf(overlay);
-                            textOverlays[index] = overlay.copyWith(color: Colors.white);
+                            textOverlays[index] =
+                                overlay.copyWith(color: Colors.white);
                           });
                         },
                         child: CircleAvatar(
                           backgroundColor: Colors.white,
                           radius: 15,
                           child: selectedColor == Colors.white
-                              ? const Icon(Icons.check, color: Colors.black, size: 15)
+                              ? const Icon(Icons.check,
+                                  color: Colors.black, size: 15)
                               : null,
                         ),
                       ),
@@ -237,11 +248,12 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
+              if (!mounted) return;
               setState(() {
                 final index = textOverlays.indexOf(overlay);
                 textOverlays[index] = overlay.copyWith(
@@ -250,7 +262,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
                   fontSize: selectedFontSize,
                 );
               });
-              Navigator.pop(context);
+              Navigator.of(dialogContext).pop();
             },
             child: const Text('Save'),
           ),
@@ -259,8 +271,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
     );
   }
 
-  // Your existing methods remain unchanged
-  Widget _buildTrimTool() { 
+  Widget _buildTrimTool() {
     return Column(
       children: [
         _buildVideoPreview(),
@@ -273,18 +284,20 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
               rangeThumbShape: const RoundRangeSliderThumbShape(
                 enabledThumbRadius: 8,
               ),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+              overlayShape:
+                  const RoundSliderOverlayShape(overlayRadius: 16),
               activeTrackColor: Colors.blue,
               inactiveTrackColor: Colors.grey[300],
             ),
             child: RangeSlider(
               values: RangeValues(_startTrim, _endTrim),
               onChanged: (RangeValues values) {
+                if (!mounted) return;
                 setState(() {
                   _startTrim = values.start;
                   _endTrim = values.end;
-                  // Update video position based on trim values
-                  final duration = _controller.value.duration.inMilliseconds.toDouble();
+                  final duration =
+                      _controller.value.duration.inMilliseconds.toDouble();
                   _controller.seekTo(Duration(
                     milliseconds: (duration * _startTrim).toInt(),
                   ));
@@ -298,7 +311,8 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
         _buildVideoControls(showExport: true),
       ],
     );
-   }
+  }
+
   Widget _buildFilterTool() {
     return Column(
       children: [
@@ -309,6 +323,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
       ],
     );
   }
+
   Widget _buildEffectsTool() {
     return Column(
       children: [
@@ -319,6 +334,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
       ],
     );
   }
+
   Widget _buildVideoPreview() {
     return Transform(
       transform: _currentEffect ?? Matrix4.identity(),
@@ -332,6 +348,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
       ),
     );
   }
+
   Widget _buildVideoControls({bool showExport = false, bool showReset = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -339,6 +356,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
         IconButton(
           icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
           onPressed: () {
+            if (!mounted) return;
             setState(() {
               _isPlaying = !_isPlaying;
               _isPlaying ? _controller.play() : _controller.pause();
@@ -358,36 +376,15 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
       ],
     );
   }
-  
-  // Filter-related code
+
   final List<Map<String, dynamic>> filters = [
-    {
-      'name': 'Normal',
-      'matrix': VideoFilters.normal,
-      'icon': Icons.filter_none,
-    },
-    {
-      'name': 'Grayscale',
-      'matrix': VideoFilters.grayscale,
-      'icon': Icons.filter_b_and_w,
-    },
-    {
-      'name': 'Sepia',
-      'matrix': VideoFilters.sepia,
-      'icon': Icons.filter_vintage,
-    },
-    {
-      'name': 'Vintage',
-      'matrix': VideoFilters.vintage,
-      'icon': Icons.filter_drama,
-    },
-    {
-      'name': 'Bright',
-      'matrix': VideoFilters.bright,
-      'icon': Icons.brightness_5,
-    },
+    {'name': 'Normal', 'matrix': VideoFilters.normal, 'icon': Icons.filter_none},
+    {'name': 'Grayscale', 'matrix': VideoFilters.grayscale, 'icon': Icons.filter_b_and_w},
+    {'name': 'Sepia', 'matrix': VideoFilters.sepia, 'icon': Icons.filter_vintage},
+    {'name': 'Vintage', 'matrix': VideoFilters.vintage, 'icon': Icons.filter_drama},
+    {'name': 'Bright', 'matrix': VideoFilters.bright, 'icon': Icons.brightness_5},
   ];
-  
+
   Widget _buildFilterOptions() {
     return SizedBox(
       height: 100,
@@ -399,7 +396,10 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
           final isSelected = _currentFilter == filter['matrix'];
           
           return GestureDetector(
-            onTap: () => setState(() => _currentFilter = filter['matrix']),
+            onTap: () {
+              if (!mounted) return;
+              setState(() => _currentFilter = filter['matrix']);
+            },
             child: Container(
               width: 80,
               margin: const EdgeInsets.all(8),
@@ -433,36 +433,15 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
       ),
     );
   }
-  
-  // Effects-related code
+
   final List<Map<String, dynamic>> effects = [
-    {
-      'name': 'Rotate Right',
-      'transform': VideoEffects.rotate(pi / 2),
-      'icon': Icons.rotate_right,
-    },
-    {
-      'name': 'Flip H',
-      'transform': VideoEffects.flip(horizontal: true),
-      'icon': Icons.flip,
-    },
-    {
-      'name': 'Flip V',
-      'transform': VideoEffects.flip(vertical: true),
-      'icon': Icons.flip_camera_android,
-    },
-    {
-      'name': 'Zoom In',
-      'transform': VideoEffects.scale(1.5),
-      'icon': Icons.zoom_in,
-    },
-    {
-      'name': 'Zoom Out',
-      'transform': VideoEffects.scale(0.75),
-      'icon': Icons.zoom_out,
-    },
+    {'name': 'Rotate Right', 'transform': VideoEffects.rotate(pi / 2), 'icon': Icons.rotate_right},
+    {'name': 'Flip H', 'transform': VideoEffects.flip(horizontal: true), 'icon': Icons.flip},
+    {'name': 'Flip V', 'transform': VideoEffects.flip(vertical: true), 'icon': Icons.flip_camera_android},
+    {'name': 'Zoom In', 'transform': VideoEffects.scale(1.5), 'icon': Icons.zoom_in},
+    {'name': 'Zoom Out', 'transform': VideoEffects.scale(0.75), 'icon': Icons.zoom_out},
   ];
-  
+
   Widget _buildEffectOptions() {
     return SizedBox(
       height: 100,
@@ -476,6 +455,7 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton.icon(
               onPressed: () {
+                if (!mounted) return;
                 setState(() {
                   _currentEffect = effect['transform'];
                 });
@@ -488,37 +468,44 @@ class _VideoEditorScreenState extends State<VideoEditorScreen> {
       ),
     );
   }
+
   void _resetFiltersAndEffects() {
+    if (!mounted) return;
     setState(() {
       _currentFilter = VideoFilters.normal;
       _currentEffect = null;
     });
   }
-  
+
   Future<void> _exportVideo() async {
+  if (!mounted) return;
+  
   try {
     final String? outputPath = await VideoProcessor().trimVideo(
       widget.videoFile.path,
       _startTrim,
       _endTrim,
     );
+    
+    if (!mounted) return; // Check again after the async call
 
     if (outputPath != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Video exported successfully!')),
       );
-      // Optionally, open the exported video or share it
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to export video')),
       );
     }
   } catch (e) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error: ${e.toString()}')),
     );
   }
 }
+
 
   @override
   Widget build(BuildContext context) {
