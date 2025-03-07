@@ -1,3 +1,22 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Use a version of the Android Gradle Plugin (AGP) that matches your Gradle wrapper and Flutter SDK requirements
+        classpath 'com.android.tools.build:gradle:7.3.1'
+
+        // If your project uses Kotlin, include the Kotlin Gradle plugin (version depends on your needs)
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10"
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files (e.g., android/app/build.gradle).
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -5,14 +24,21 @@ allprojects {
     }
 }
 
+// Flutter-specific: put build outputs in a single folder at the root
 rootProject.buildDir = "../build"
+
+// Organize subproject outputs under ../build/<module_name>
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
+// Ensures the 'app' module is evaluated first (often required in Flutter projects)
 subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// A clean task to wipe out all build outputs
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+
